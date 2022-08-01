@@ -31,8 +31,9 @@ public:
 //    fstream blocks_object;
     Database();
     void insert_database(vector<string> fields, const char *address);
-    void delete_from_database(int column, string target, string address);
-    void read_database(map<int, string> target, string address);
+    void cut_string(string ms, vector<string> &ans);
+    void delete_from_database(map<int, string> target, const char *address);
+    vector<string> extract_database(int target, const char *address);
 //    void users_read();
 //    void groups_read();
 //    void user_group_read();

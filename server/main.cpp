@@ -7,8 +7,7 @@ void exit_app(int sig_num);
 
 int main() {
     server = new Server();
-    signal(SIGTERM, exit_app);
-//    server->get_users_from_file();
+    server->get_info_from_file();
     server->start_listening();
     server->start_accepting();
 }

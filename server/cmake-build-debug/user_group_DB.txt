@@ -1,6 +1,2 @@
-#a #A
-#b #B
-#b #C
-#a #C
-#a #A
-#a #A
+#1 #Ali #Owl
+#2 #Mobin #Owl

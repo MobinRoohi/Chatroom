@@ -29,8 +29,7 @@ public:
     void send_pv(User_server* sender, User_server* client, std::string mes);
     bool login_client(User_server* user_server);
     void check_user(std::string name, bool connected=false);
-    void get_users_from_file();
-    int get_online_clients_count();
+    void get_info_from_file();
     void delete_users();
     void send_group(User_server* sender, Group* dest_group, string message);
     void broadcast(string, User_server*, map<string, User*>);
@@ -42,6 +41,8 @@ public:
     void unblock(string blocker, string blocked);
     void block(string blocker, string blocked);
     void check_block(string blocker, string blocked);
+    void show_history_pv(User *a_user, User *b_user);
+    void show_history_group(User *user, Group *group);
     ~Server();
 
     int unique_id;

@@ -115,7 +115,7 @@ bool Server::try_add_or_get_user(User_server* user_server, std::string username,
     else {
         users[username] = new User(name, username, password, user_server);
 //        user_file->add_user(users[username]);
-        vector<string> a = {username, password};
+        vector<string> a = {username, password, name};
         DB->insert_database(a, "users_DB.txt");
     }
     return true;
@@ -156,9 +156,6 @@ void Server::do_for_user(User* user, string message) {
             check_block(message_splitted->at(2), user->username);
             groups[message_splitted->at(1)]->member_exits(user->username);
             invite_group(message_splitted->at(1), message_splitted->at(2), user->username);
-//            send_message(user->user_server->client_socket, "Server | Group | You invited " + message_splitted->at(2) + " to group " + message_splitted->at(1));
-//            send_message(users[message_splitted->at(2)]->user_server->client_socket, "Server | Group | " + user->user_server->name + " invited you to the group, " + message_splitted->at(1));
-//            broadcast(user->user_server->name + " invited " + message_splitted->at(2), user->user_server, groups[message_splitted->at(1)]->group_members);
         } else
         if (message_splitted->at(0) == "showgroups") {
             check_message_size(message_splitted, 1);
@@ -177,6 +174,17 @@ void Server::do_for_user(User* user, string message) {
             check_message_size(message_splitted, 2);
             check_user(message_splitted->at(1));
             unblock(user->username, message_splitted->at(1));
+        } else
+        if (message_splitted->at(0) == "history") {
+            check_message_size(message_splitted, 3);
+            if (message_splitted->at(1) == "pv") {
+                check_user(message_splitted->at(2));
+                show_history_pv(user, users[message_splitted->at(2)]);
+            } else
+            if (message_splitted->at(1) == "group") {
+                check_group(message_splitted->at(2), 1);
+                show_history_group(user, groups[message_splitted->at(2)]);
+            }
         }
         else
             throw "The command is not executable";
@@ -190,6 +198,44 @@ void Server::do_for_user(User* user, string message) {
     }
 }
 
+void Server::show_history_pv(User *a_user, User *b_user) {
+    vector<string> history = {"a"};
+    for (int i = 1; true; i++) {
+        history = DB->extract_database(i, "pv_msg_DB.txt");
+        if (history.size() == 0) {
+            history = {"a"};
+            break;
+        }
+        if (history[1] == a_user->username && history[2] == b_user->username) {
+            send_message(a_user->user_server->client_socket, "PV | History | You : " + history[3]);
+            continue;
+        }
+        if (history[1] == b_user->username && history[2] == a_user->username) {
+            send_message(a_user->user_server->client_socket, "PV | History | " + users[history[1]]->name + " (@" + history[1] + ") : " + history[3]);
+            continue;
+        }
+    }
+}
+
+void Server::show_history_group(User *user, Group *group) {
+    vector<string> history = {"a"};
+    for (int i = 1; true; i++) {
+        history = DB->extract_database(i, "group_msg_DB.txt");
+        if (history.size() == 0) {
+            history = {"a"};
+            break;
+        }
+        if (history[2] == group->name && history[1] == user->username) {
+            send_message(user->user_server->client_socket, "Groups | History | " + history[2] + " | You : " + history[3]);
+            continue;
+        }
+        if (history[2] == group->name && history[1] != user->username) {
+            send_message(user->user_server->client_socket, "Groups | History | " + history[2] + " | " + users[history[1]]->name + " (@" + history[1] + ") : " + history[3]);
+            continue;
+        }
+    }
+}
+
 void Server::unblock(string blocker, string blocked) {
     for (auto a : blocks) {
         if (a.first == blocker && a.second == blocked) {
@@ -197,6 +243,8 @@ void Server::unblock(string blocker, string blocked) {
             for (i = blocks.begin(); i->first != blocker || i->second != blocked; i++) {}
             blocks.erase(i);
             send_message(users[blocker]->user_server->client_socket, "Server | You have successfully unblocked " + users[blocked]->name + " (@" + blocked + ")");
+            map<int, string> a; a[1] = blocker; a[2] = blocked;
+            DB->delete_from_database(a, "blocks_DB.txt");
             return;
         }
     }
@@ -344,10 +392,40 @@ void Server::end_connection(int id) {
         delete clients[id];
 }
 
-void Server::get_users_from_file() {
-////    vector<User*>* users_db = user_file->get_users();
-//    for (auto &user:*users_db)
-//        users[user->username] = user;
+void Server::get_info_from_file() {
+    vector<string> a {"a"};
+    for (int i = 1; true; i++) {
+        a = DB->extract_database(i, "users_DB.txt");
+        if (a.size() == 0) {
+            a = {"a"};
+            break;
+        }
+        users[a[1]] = new User(a[3], a[1], a[2]);
+    }
+    for (int i = 1; true; i++) {
+        a = DB->extract_database(i, "groups_DB.txt");
+        if (a.size() == 0) {
+            a = {"a"};
+            break;
+        }
+        groups[a[1]] = new Group(a[1], users[a[2]]);
+    }
+    for (int i = 1; true; i++) {
+        a = DB->extract_database(i, "user_group_DB.txt");
+        if (a.size() == 0) {
+            a = {"a"};
+            break;
+        }
+        groups[a[2]]->group_members[a[1]] = users[a[1]];
+    }
+    for (int i = 1; true; i++) {
+        a = DB->extract_database(i, "blocks_DB.txt");
+        if (a.size() == 0) {
+            a = {"a"};
+            break;
+        }
+        blocks.insert(pair<string, string>(a[1], a[2]));
+    }
 }
 
 void Server::delete_users()
