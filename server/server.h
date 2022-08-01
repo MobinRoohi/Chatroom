@@ -10,6 +10,7 @@
 #include "user.h"
 #include "user_file.h"
 #include "group.h"
+#include "databases.h"
 
 
 class Server {
@@ -51,7 +52,8 @@ public:
     std::map<std::string, User*> users;
     std::map<std::string, Group*> groups;
     std::multimap<std::string, std::string> blocks;
-    User_file* user_file;
+    Database * DB;
+
 };
 
 

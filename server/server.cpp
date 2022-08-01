@@ -3,8 +3,8 @@
 Server::Server() {
     unique_id = 0;
     MAX_LEN = 150;
-    user_file = new User_file("/Users/mobin/CS2022/AP/Project3/server/users", " #");
     clients.clear();
+    DB = new Database;
 }
 
 void Server::start_listening() {
@@ -114,7 +114,9 @@ bool Server::try_add_or_get_user(User_server* user_server, std::string username,
     }
     else {
         users[username] = new User(name, username, password, user_server);
-        user_file->add_user(users[username]);
+//        user_file->add_user(users[username]);
+        vector<string> a = {username, password};
+        DB->insert_database(a, "users_DB.txt");
     }
     return true;
 }
@@ -224,6 +226,8 @@ void Server::block(string blocker, string blocked) {
     }
     blocks.insert(pair<string, string>(blocker, blocked));
     send_message(users[blocker]->user_server->client_socket, "Server | You have successfully blocked " + users[blocked]->name + " (@" + blocked + ")");
+    vector<string> a {blocker, blocked};
+    DB->insert_database(a, "blocks_DB.txt");
 }
 
 void Server::show_blocked(User* user) {
@@ -270,6 +274,9 @@ void Server::show_groups(User* user) {
 void Server::send_pv(User_server* sender, User_server* client, string message) {
     send_message(client->client_socket, "PV | " + sender->name + " (@" + sender->username + ")" +  " : " + message);
     send_message(sender->client_socket, "Server | ✓✓ You To " + client->name + " (@" + client->username + ")" + " : " + message);
+    vector<string> a {sender->username, client->username, message};
+    cout << message << endl;
+    DB->insert_database(a, "pv_msg_DB.txt");
 //    send_message(sender->client_socket, "✓✓");
 
 }
@@ -284,6 +291,9 @@ void Server::check_user(string username, bool connected) {
 void Server::send_group(User_server* sender, Group* dest_group, string message) {
     broadcast("Groups | " + dest_group->name + " | " + sender->name + " (@" + sender->username + ")" + " : " + message, sender, dest_group->group_members); // MAYBE MORE IN ARGUMENTS!
     send_message(sender->client_socket, "Groups | " + dest_group->name + " | ✓✓ You : " + message);
+    vector<string> a {sender->username, dest_group->name, message};
+    DB->insert_database(a, "group_msg_DB.txt");
+
 }
 
 void Server::broadcast(string msg, User_server* sender_server, map<string, User *> users) {
@@ -310,6 +320,9 @@ void Server::check_group(string name, int sig) {
 void Server::add_group(string name, User* owner) {
     check_group(name, 0);
     groups[name] = new Group(name, owner);
+    vector<string> a = {name, owner->username}; vector<string> b {owner->username, name};
+    DB->insert_database(a, "groups_DB.txt");
+    DB->insert_database(b, "user_group_DB.txt");
     // blah blah blah
 }
 
@@ -318,6 +331,8 @@ void Server::invite_group(string group_name, string invitee_name, string inviter
     check_user(invitee_name);
     groups[group_name]->try_add_group(users[invitee_name]);
     if (users[inviter]) {
+        vector<string> a {invitee_name, group_name};
+        DB->insert_database(a, "user_group_DB.txt");
         send_message(users[inviter]->user_server->client_socket, "Server | You invited " + invitee_name + " to the group : " + group_name);
         broadcast("Groups | " + group_name + " | "+ inviter + " (@" + users[inviter]->username + ")" + " invited " + invitee_name + " (@" + users[invitee_name]->username + ")" + " to the group", users[inviter]->user_server, groups[group_name]->group_members);
     }
@@ -330,9 +345,9 @@ void Server::end_connection(int id) {
 }
 
 void Server::get_users_from_file() {
-    vector<User*>* users_db = user_file->get_users();
-    for (auto &user:*users_db)
-        users[user->username] = user;
+////    vector<User*>* users_db = user_file->get_users();
+//    for (auto &user:*users_db)
+//        users[user->username] = user;
 }
 
 void Server::delete_users()
@@ -352,7 +367,7 @@ void Server::close_connection() {
 }
 
 Server::~Server() {
-    delete user_file;
+//    delete user_file;
     delete_users();
     close_connection();
 }

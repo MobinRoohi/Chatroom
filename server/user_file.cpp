@@ -6,7 +6,7 @@ User_file::User_file(string _addr, string _wrapper):
 void User_file::add_user(User* user) {
     lock_guard<mutex> guard(write_mtx);
     file.open(addr, ios::out);
-    file << user->username << wrapper << user->password;
+    file << wrapper << user->username << wrapper << user->password;
     file.close();
 }
 

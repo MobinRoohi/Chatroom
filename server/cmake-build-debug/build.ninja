@@ -114,6 +114,12 @@ build CMakeFiles/server.dir/group.cpp.o: CXX_COMPILER__server_Debug /Users/mobin
   OBJECT_DIR = CMakeFiles/server.dir
   OBJECT_FILE_DIR = CMakeFiles/server.dir
 
+build CMakeFiles/server.dir/databases.cpp.o: CXX_COMPILER__server_Debug /Users/mobin/CS2022/AP/Project3/server/databases.cpp || cmake_object_order_depends_target_server
+  DEP_FILE = CMakeFiles/server.dir/databases.cpp.o.d
+  FLAGS = -g -std=gnu++17
+  OBJECT_DIR = CMakeFiles/server.dir
+  OBJECT_FILE_DIR = CMakeFiles/server.dir
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target server
@@ -122,7 +128,7 @@ build CMakeFiles/server.dir/group.cpp.o: CXX_COMPILER__server_Debug /Users/mobin
 #############################################
 # Link the executable server
 
-build server: CXX_EXECUTABLE_LINKER__server_Debug CMakeFiles/server.dir/server.cpp.o CMakeFiles/server.dir/user_server.cpp.o CMakeFiles/server.dir/user.cpp.o CMakeFiles/server.dir/user_file.cpp.o CMakeFiles/server.dir/helper.cpp.o CMakeFiles/server.dir/main.cpp.o CMakeFiles/server.dir/group.cpp.o
+build server: CXX_EXECUTABLE_LINKER__server_Debug CMakeFiles/server.dir/server.cpp.o CMakeFiles/server.dir/user_server.cpp.o CMakeFiles/server.dir/user.cpp.o CMakeFiles/server.dir/user_file.cpp.o CMakeFiles/server.dir/helper.cpp.o CMakeFiles/server.dir/main.cpp.o CMakeFiles/server.dir/group.cpp.o CMakeFiles/server.dir/databases.cpp.o
   FLAGS = -g
   LINK_LIBRARIES = -lpthread
   OBJECT_DIR = CMakeFiles/server.dir
