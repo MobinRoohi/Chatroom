@@ -243,8 +243,7 @@ void Server::do_for_user(User* user, string message) {
 }
 
 void Server::show_friends(string user) {
-    map<string, int> list;
-    vector<string> a;
+    map<string, int> list; vector<string> a;
     for (int i = 1; true; i++) {
         a = DB->extract_database(i, "pv_msg_DB.txt");
         if (a.size() == 0) {
