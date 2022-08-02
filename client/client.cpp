@@ -131,7 +131,7 @@ void Client::close_connection() {
         recv_thread = 0;
     }
     close(client_socket);
-    multi_print("=== The socket turned off ===", false);
+    multi_print("==== The socket turned off ====", false);
 }
 
 Client::~Client() {
