@@ -32,7 +32,7 @@ public:
     void get_info_from_file();
     void delete_users();
     void send_group(User_server* sender, Group* dest_group, string message);
-    void broadcast(string, User_server*, map<string, User*>);
+    void broadcast(string, User_server*, map<string, User*>, string group_name);
     void check_group(string name, int i);
     void add_group(string name, User* owner);
     void invite_group(string group_name, string invitee_name, string inviter);
@@ -43,6 +43,8 @@ public:
     void check_block(string blocker, string blocked);
     void show_history_pv(User *a_user, User *b_user);
     void show_history_group(User *user, Group *group);
+    void print_buffer(string user);
+    void show_friends(string user);
     ~Server();
 
     int unique_id;

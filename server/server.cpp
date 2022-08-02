@@ -99,7 +99,38 @@ bool Server::login_client(User_server* user_server) {
         std::string welcome_message = "Server | Welcome " + std::string(name) + " (@" + std::string(username) + ")";
         send_message(user_server->client_socket, welcome_message);
         multi_print(welcome_message);
+        print_buffer(user_server->username);
         return true;
+    }
+}
+
+void Server::print_buffer(string user) {
+    vector<string> a = {"a"};
+    for (int i = 1; true; i++) {
+        a = DB->extract_database(i, "buffer_pv_DB.txt");
+        if (a.size() == 0) {
+            a = {"a"};
+            break;
+        }
+        if (a[2] == user) {
+            send_message(users[user]->user_server->client_socket, "Buffer | PV | " + users[a[1]]->name + " (@" + a[1] + ") : " + a[3]);
+            map<int, string> b; b[0] = a[0];
+            DB->delete_from_database(b, "buffer_pv_DB.txt");
+            i--;
+        }
+    }
+    for (int i = 1; true; i++) {
+        a = DB->extract_database(i, "buffer_group_DB.txt");
+        if (a.size() == 0) {
+            a = {"a"};
+            break;
+        }
+        if (a[2] == user) {
+            send_message(users[user]->user_server->client_socket, "Buffer | Group | " + a[3] + " | " + users[a[1]]->name + " (@" + a[1] + ") : " + a[4]);
+            map<int, string> b; b[0] = a[0];
+            DB->delete_from_database(b, "buffer_group_DB.txt");
+            i--;
+        }
     }
 }
 
@@ -135,9 +166,17 @@ void Server::do_for_user(User* user, string message) {
         check_message_size(message_splitted);
         if (message_splitted->at(0) == "pv") {
             check_message_size(message_splitted, 3);
-            check_user(message_splitted->at(1), true);
+            check_user(message_splitted->at(1));
             check_block(message_splitted->at(1), user->username);
-            send_pv(user->user_server, users[message_splitted->at(1)]->user_server, message_splitted->at(2));
+            if (users[message_splitted->at(1)]->user_server)
+                send_pv(user->user_server, users[message_splitted->at(1)]->user_server, message_splitted->at(2));
+            else {
+                vector<string> a = {user->username, message_splitted->at(1), message_splitted->at(2)};
+                send_message(user->user_server->client_socket, "Server | ✓✓ You To " + user->name + " (@" + user->username + ")" + " : " + message_splitted->at(2));
+                DB->insert_database(a, "buffer_pv_DB.txt");
+                vector<string> b {user->username, message_splitted->at(1), message_splitted->at(2)};
+                DB->insert_database(b, "pv_msg_DB.txt");
+            }
         } else
         if (message_splitted->at(0) == "group") {
             check_message_size(message_splitted, 3);
@@ -149,11 +188,12 @@ void Server::do_for_user(User* user, string message) {
             check_message_size(message_splitted, 2);
             add_group(message_splitted->at(1), user);
             send_message(user->user_server->client_socket, "Server | Group | You created the group : " + message_splitted->at(1));
-            broadcast(user->user_server->name + " (@" + user->username + ")" + " created the group", user->user_server, groups[message_splitted->at(1)]->group_members);
+            broadcast(user->user_server->name + " (@" + user->username + ")" + " created the group", user->user_server, groups[message_splitted->at(1)]->group_members, message_splitted->at(1));
         } else
         if (message_splitted->at(0) == "invitegroup") {
             check_message_size(message_splitted, 3);
             check_block(message_splitted->at(2), user->username);
+            check_group(message_splitted->at(1), 1);
             groups[message_splitted->at(1)]->member_exits(user->username);
             invite_group(message_splitted->at(1), message_splitted->at(2), user->username);
         } else
@@ -185,6 +225,10 @@ void Server::do_for_user(User* user, string message) {
                 check_group(message_splitted->at(2), 1);
                 show_history_group(user, groups[message_splitted->at(2)]);
             }
+        } else
+        if (message_splitted->at(0) == "friends") {
+            check_message_size(message_splitted, 1);
+            show_friends(user->username);
         }
         else
             throw "The command is not executable";
@@ -198,8 +242,43 @@ void Server::do_for_user(User* user, string message) {
     }
 }
 
+void Server::show_friends(string user) {
+    map<string, int> list;
+    vector<string> a;
+    for (int i = 1; true; i++) {
+        a = DB->extract_database(i, "pv_msg_DB.txt");
+        if (a.size() == 0) {
+            a = {"a"};
+            break;
+        }
+        if (a[1] == user) {
+            if (list.find(a[2]) == list.end()) {
+                list[a[2]] = 1;
+                continue;
+            }
+        }
+        if (a[2] == user) {
+            if (list.find(a[2]) == list.end()) {
+                list[a[1]] = 1;
+                continue;
+            }
+        }
+    }
+    send_message(users[user]->user_server->client_socket, "Here is a list of your friends :");
+    if (list.size() == 0) {
+        send_message(users[user]->user_server->client_socket, "You currently do not have any friends, ouch!");
+        return;
+    }
+    int count = 1;
+    for (auto i : list) {
+        send_message(users[user]->user_server->client_socket, to_string(count) + ". " + i.first);
+        count++;
+    }
+}
+
 void Server::show_history_pv(User *a_user, User *b_user) {
     vector<string> history = {"a"};
+    int j = 0;
     for (int i = 1; true; i++) {
         history = DB->extract_database(i, "pv_msg_DB.txt");
         if (history.size() == 0) {
@@ -208,17 +287,23 @@ void Server::show_history_pv(User *a_user, User *b_user) {
         }
         if (history[1] == a_user->username && history[2] == b_user->username) {
             send_message(a_user->user_server->client_socket, "PV | History | You : " + history[3]);
+            j++;
             continue;
         }
         if (history[1] == b_user->username && history[2] == a_user->username) {
             send_message(a_user->user_server->client_socket, "PV | History | " + users[history[1]]->name + " (@" + history[1] + ") : " + history[3]);
+            j++;
             continue;
         }
+    }
+    if (j == 0) {
+        send_message(a_user->user_server->client_socket, "--- No History Available! ---");
     }
 }
 
 void Server::show_history_group(User *user, Group *group) {
     vector<string> history = {"a"};
+    int j = 0;
     for (int i = 1; true; i++) {
         history = DB->extract_database(i, "group_msg_DB.txt");
         if (history.size() == 0) {
@@ -227,12 +312,17 @@ void Server::show_history_group(User *user, Group *group) {
         }
         if (history[2] == group->name && history[1] == user->username) {
             send_message(user->user_server->client_socket, "Groups | History | " + history[2] + " | You : " + history[3]);
+            j++;
             continue;
         }
         if (history[2] == group->name && history[1] != user->username) {
             send_message(user->user_server->client_socket, "Groups | History | " + history[2] + " | " + users[history[1]]->name + " (@" + history[1] + ") : " + history[3]);
+            j++;
             continue;
         }
+    }
+    if (j == 0) {
+        send_message(user->user_server->client_socket, "--- No History Available! ---");
     }
 }
 
@@ -323,9 +413,7 @@ void Server::send_pv(User_server* sender, User_server* client, string message) {
     send_message(client->client_socket, "PV | " + sender->name + " (@" + sender->username + ")" +  " : " + message);
     send_message(sender->client_socket, "Server | ✓✓ You To " + client->name + " (@" + client->username + ")" + " : " + message);
     vector<string> a {sender->username, client->username, message};
-    cout << message << endl;
     DB->insert_database(a, "pv_msg_DB.txt");
-//    send_message(sender->client_socket, "✓✓");
 
 }
 
@@ -337,17 +425,23 @@ void Server::check_user(string username, bool connected) {
 }
 
 void Server::send_group(User_server* sender, Group* dest_group, string message) {
-    broadcast("Groups | " + dest_group->name + " | " + sender->name + " (@" + sender->username + ")" + " : " + message, sender, dest_group->group_members); // MAYBE MORE IN ARGUMENTS!
+    broadcast(message, sender, dest_group->group_members, dest_group->name); // MAYBE MORE IN ARGUMENTS!
     send_message(sender->client_socket, "Groups | " + dest_group->name + " | ✓✓ You : " + message);
     vector<string> a {sender->username, dest_group->name, message};
     DB->insert_database(a, "group_msg_DB.txt");
 
 }
 
-void Server::broadcast(string msg, User_server* sender_server, map<string, User *> users) {
+void Server::broadcast(string msg, User_server* sender_server, map<string, User *> users, string group_name) {
     for (auto &user : users) {
-        if (user.first != sender_server->username && user.second->user_server) {
-            send_message(user.second->user_server->client_socket, msg);
+        if (user.first != sender_server->username) {
+            if (user.second->user_server) {
+                send_message(user.second->user_server->client_socket, "Groups | " + group_name + " | " + sender_server->name + " (@" + sender_server->username + ")" + " : " + msg);
+            }
+            else {
+                vector<string> a {sender_server->username, user.second->username, group_name, msg};
+                DB->insert_database(a, "buffer_group_DB.txt");
+            }
         }
     }
 }
@@ -382,7 +476,11 @@ void Server::invite_group(string group_name, string invitee_name, string inviter
         vector<string> a {invitee_name, group_name};
         DB->insert_database(a, "user_group_DB.txt");
         send_message(users[inviter]->user_server->client_socket, "Server | You invited " + invitee_name + " to the group : " + group_name);
-        broadcast("Groups | " + group_name + " | "+ inviter + " (@" + users[inviter]->username + ")" + " invited " + invitee_name + " (@" + users[invitee_name]->username + ")" + " to the group", users[inviter]->user_server, groups[group_name]->group_members);
+        for (auto &user : groups[group_name]->group_members) {
+            if (user.first != inviter && user.second->user_server) {
+                send_message(user.second->user_server->client_socket, "Groups | " + group_name + " | "+ inviter + " (@" + users[inviter]->username + ")" + " invited " + invitee_name + " (@" + users[invitee_name]->username + ")" + " to the group");
+            }
+        }
     }
 }
 

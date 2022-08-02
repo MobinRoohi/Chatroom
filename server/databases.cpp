@@ -67,32 +67,26 @@ void Database::delete_from_database(map<int, string> target, const char *address
     vector<string> ans;
     bool once = false;
     bool delete_ = true;
+    int count = 1;
     while (getline(fileread, cc)) {
         cut_string(cc, ans);
-        if (!once)
-            for (int i = 0; i < ans.size(); i++) {
-                if (target.find(i) != target.end()) {
-                    if (target[i] != ans[i]) {
-                        delete_ = false;
-                        break;
+        for (int i = 0; i < ans.size(); i++) {
+            if (target.find(i) != target.end()) {
+                if (target[i] != ans[i]) {
+                    for (int i = 0; i < ans.size(); i++) {
+                        if (i == 0) {
+                            filewrite << "#" << count;
+                            continue;
+                        }
+                        filewrite << " #" << ans[i];
                     }
+                    filewrite << endl;
+                    count++;
+                    break;
                 }
             }
-        if (!delete_) {
-            for (int i = 0; i < ans.size(); i++) {
-                if (i == 0) {
-                    filewrite << "#" << ans[i];
-                    cout << ans[i] << endl;
-                    continue;
-                }
-                filewrite << " #" << ans[i];
-                cout << ans[i] << endl;
-            }
-            filewrite << endl;
         }
-        else once = true;
         ans.clear();
-        delete_ = true;
     }
     remove(address);
     rename(address2, address);
